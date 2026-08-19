@@ -1,6 +1,7 @@
 package com.inditex.prices.infrastructure.adapter.in.rest;
 
 import com.inditex.prices.domain.exception.PriceNotFoundException;
+import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -15,6 +16,7 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 class ApiExceptionHandler extends ResponseEntityExceptionHandler {
 
     private static final String PRICE_NOT_FOUND_TITLE = "Price not found";
+    private static final String INVALID_PARAMETERS_TITLE = "Invalid request parameters";
     private static final String INTERNAL_ERROR_TITLE = "Internal error";
     private static final String INTERNAL_ERROR_DETAIL = "Se ha producido un error inesperado";
 
@@ -22,6 +24,14 @@ class ApiExceptionHandler extends ResponseEntityExceptionHandler {
     ProblemDetail onPriceNotFound(PriceNotFoundException ex) {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
         problem.setTitle(PRICE_NOT_FOUND_TITLE);
+        return problem;
+    }
+
+    /** Violaciones de las constraints del contrato en parámetros (vía @Validated). */
+    @ExceptionHandler(ConstraintViolationException.class)
+    ProblemDetail onConstraintViolation(ConstraintViolationException ex) {
+        ProblemDetail problem = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+        problem.setTitle(INVALID_PARAMETERS_TITLE);
         return problem;
     }
 

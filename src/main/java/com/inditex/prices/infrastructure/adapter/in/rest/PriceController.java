@@ -8,11 +8,13 @@ import com.inditex.prices.infrastructure.adapter.in.rest.api.PricesApi;
 import com.inditex.prices.infrastructure.adapter.in.rest.api.model.PriceResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDateTime;
 
 @RestController
+@Validated
 @RequiredArgsConstructor
 class PriceController implements PricesApi {
 
