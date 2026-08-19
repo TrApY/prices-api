@@ -7,6 +7,7 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
+import java.math.BigDecimal;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -108,7 +109,8 @@ class FindApplicablePriceApiTest {
         assertEquals(PRODUCT_35455, body.get("productId").asLong());
         assertEquals(BRAND_ZARA, body.get("brandId").asLong());
         assertEquals(expectedPriceList, body.get("priceList").asInt());
-        assertEquals(Double.parseDouble(expectedPrice), body.get("price").asDouble());
+        // Dinero: comparación exacta por valor con BigDecimal, nunca igualdad de double.
+        assertEquals(0, new BigDecimal(expectedPrice).compareTo(body.get("price").decimalValue()));
         assertEquals(expectedStart, body.get("startDate").asString());
         assertEquals(expectedEnd, body.get("endDate").asString());
         assertEquals("EUR", body.get("currency").asString());
