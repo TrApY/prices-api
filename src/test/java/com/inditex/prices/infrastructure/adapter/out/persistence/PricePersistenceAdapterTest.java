@@ -18,7 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @DataJpaTest
-@Import(PricePersistenceAdapter.class)
+@Import({PricePersistenceAdapter.class, PriceEntityMapperImpl.class})
 class PricePersistenceAdapterTest {
 
     @Autowired

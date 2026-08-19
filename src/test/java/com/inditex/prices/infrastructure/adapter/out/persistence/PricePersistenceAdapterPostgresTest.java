@@ -29,7 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @Testcontainers(disabledWithoutDocker = true)
-@Import(PricePersistenceAdapter.class)
+@Import({PricePersistenceAdapter.class, PriceEntityMapperImpl.class})
 class PricePersistenceAdapterPostgresTest {
 
     @Container

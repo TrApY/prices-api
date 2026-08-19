@@ -30,7 +30,11 @@ dependencies {
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.1.0")
 
     compileOnly("org.projectlombok:lombok")
+    implementation("org.mapstruct:mapstruct:1.6.3")
     annotationProcessor("org.projectlombok:lombok")
+    // El binding ordena los processors: Lombok genera antes de que MapStruct lea.
+    annotationProcessor("org.projectlombok:lombok-mapstruct-binding:0.2.0")
+    annotationProcessor("org.mapstruct:mapstruct-processor:1.6.3")
 
     runtimeOnly("com.h2database:h2")
 }

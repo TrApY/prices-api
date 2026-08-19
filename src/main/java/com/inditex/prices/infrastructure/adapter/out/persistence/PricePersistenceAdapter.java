@@ -13,13 +13,14 @@ import java.util.List;
 class PricePersistenceAdapter implements PriceRepository {
 
     private final SpringDataPriceRepository springDataRepository;
+    private final PriceEntityMapper mapper;
 
     @Override
     public List<Price> findCandidates(PriceQuery query) {
         return springDataRepository
                 .findInForceAt(query.productId().value(), query.brandId().value(), query.applicationDate())
                 .stream()
-                .map(PriceEntityMapper::toDomain)
+                .map(mapper::toDomain)
                 .toList();
     }
 }
