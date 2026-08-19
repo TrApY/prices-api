@@ -1,3 +1,10 @@
 spring:
   application:
     name: prices-api
+
+springdoc:
+  # Contract-first: la fuente de verdad es docs/openapi.yaml (servido como /openapi.yaml),
+  # y Swagger UI actúa solo como visor de ese contrato. api-docs se mantiene activo
+  # porque springdoc desactiva también la UI al apagarlo.
+  swagger-ui:
+    url: /openapi.yaml
