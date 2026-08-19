@@ -19,11 +19,12 @@ import java.time.LocalDateTime;
 class PriceController implements PricesApi {
 
     private final FindApplicablePriceUseCase findApplicablePrice;
+    private final PriceResponseMapper mapper;
 
     @Override
     public ResponseEntity<PriceResponse> findApplicablePrice(
             LocalDateTime applicationDate, Long productId, Long brandId) {
         PriceQuery query = new PriceQuery(applicationDate, new ProductId(productId), new BrandId(brandId));
-        return ResponseEntity.ok(PriceResponseMapper.toResponse(findApplicablePrice.find(query)));
+        return ResponseEntity.ok(mapper.toResponse(findApplicablePrice.find(query)));
     }
 }
