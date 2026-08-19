@@ -1,0 +1,151 @@
+openapi: 3.0.3
+info:
+  title: Prices API
+  description: |
+    Servicio de consulta del precio aplicable a un producto de una cadena del grupo
+    en una fecha dada. Cuando varias tarifas están vigentes en esa fecha, se aplica
+    la de mayor prioridad.
+  version: 1.0.0
+  contact:
+    name: Alex Marín Serna
+servers:
+  - url: http://localhost:8080
+    description: Local
+tags:
+  - name: prices
+    description: Consulta de precios aplicables
+paths:
+  /api/v1/prices:
+    get:
+      tags: [prices]
+      operationId: findApplicablePrice
+      summary: Precio aplicable a un producto de una cadena en una fecha
+      description: |
+        Devuelve la tarifa que aplica al producto de la cadena en la fecha indicada.
+        Si varias tarifas están vigentes en esa fecha, gana la de mayor prioridad.
+      parameters:
+        - name: applicationDate
+          in: query
+          required: true
+          description: Fecha de aplicación (ISO-8601, sin zona horaria)
+          schema:
+            type: string
+            format: date-time
+          example: "2020-06-14T16:00:00"
+        - name: productId
+          in: query
+          required: true
+          description: Identificador del producto
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+          example: 35455
+        - name: brandId
+          in: query
+          required: true
+          description: Identificador de la cadena del grupo (1 = ZARA)
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+          example: 1
+      responses:
+        "200":
+          description: Precio aplicable encontrado
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PriceResponse"
+              example:
+                productId: 35455
+                brandId: 1
+                priceList: 2
+                startDate: "2020-06-14T15:00:00"
+                endDate: "2020-06-14T18:30:00"
+                price: 25.45
+                currency: "EUR"
+        "400":
+          description: Parámetros inválidos, ausentes o malformados
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+              example:
+                type: "about:blank"
+                title: "Bad Request"
+                status: 400
+                detail: "El parámetro 'applicationDate' debe ser una fecha ISO-8601"
+                instance: "/api/v1/prices"
+        "404":
+          description: Ninguna tarifa aplica al producto, cadena y fecha indicados
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+              example:
+                type: "about:blank"
+                title: "Price not found"
+                status: 404
+                detail: "No hay tarifa aplicable para el producto 35455 de la cadena 1 el 2019-01-01T00:00:00"
+                instance: "/api/v1/prices"
+components:
+  schemas:
+    PriceResponse:
+      type: object
+      description: Tarifa aplicable con su vigencia y precio final
+      required: [productId, brandId, priceList, startDate, endDate, price, currency]
+      properties:
+        productId:
+          type: integer
+          format: int64
+          description: Identificador del producto
+          example: 35455
+        brandId:
+          type: integer
+          format: int64
+          description: Identificador de la cadena del grupo
+          example: 1
+        priceList:
+          type: integer
+          description: Identificador de la tarifa aplicada
+          example: 2
+        startDate:
+          type: string
+          format: date-time
+          description: Inicio de vigencia de la tarifa aplicada
+          example: "2020-06-14T15:00:00"
+        endDate:
+          type: string
+          format: date-time
+          description: Fin de vigencia de la tarifa aplicada
+          example: "2020-06-14T18:30:00"
+        price:
+          type: number
+          description: Precio final de venta
+          example: 25.45
+        currency:
+          type: string
+          description: Moneda (ISO 4217)
+          example: "EUR"
+    ProblemDetail:
+      type: object
+      description: Error en formato RFC 9457 (Problem Details)
+      properties:
+        type:
+          type: string
+          format: uri
+          description: URI que identifica el tipo de problema
+        title:
+          type: string
+          description: Resumen corto del problema
+        status:
+          type: integer
+          description: Código de estado HTTP
+        detail:
+          type: string
+          description: Explicación específica de esta ocurrencia
+        instance:
+          type: string
+          format: uri
+          description: Recurso donde se produjo el problema
