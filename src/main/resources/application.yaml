@@ -2,6 +2,17 @@ spring:
   application:
     name: prices-api
 
+  datasource:
+    url: jdbc:h2:mem:prices;DB_CLOSE_DELAY=-1
+    username: sa
+    password: ""
+
+  jpa:
+    # El esquema lo gobierna Flyway; Hibernate solo valida que las entidades cuadren.
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+
 springdoc:
   # Swagger UI como visor del contrato estático. api-docs queda activo porque
   # springdoc desactiva también la UI al apagarlo.

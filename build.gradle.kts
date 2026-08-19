@@ -22,8 +22,17 @@ repositories {
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-webmvc")
     implementation("org.springframework.boot:spring-boot-starter-validation")
+    implementation("org.springframework.boot:spring-boot-starter-data-jpa")
+    // Boot 4 modulariza las auto-configs: flyway-core solo no activa las migraciones.
+    implementation("org.springframework.boot:spring-boot-flyway")
+    implementation("org.flywaydb:flyway-core")
     // Visor del contrato estático y anotaciones OpenAPI de las interfaces generadas.
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.1.0")
+
+    compileOnly("org.projectlombok:lombok")
+    annotationProcessor("org.projectlombok:lombok")
+
+    runtimeOnly("com.h2database:h2")
 }
 
 // Interfaces y modelos generados desde el contrato; viven en build/ y no se commitean.
@@ -74,6 +83,15 @@ testing {
         named<JvmTestSuite>("test") {
             dependencies {
                 implementation("org.springframework.boot:spring-boot-starter-test")
+                // Boot 4 modulariza los test slices: @DataJpaTest y @AutoConfigureTestDatabase
+                // viven en módulos -test propios, ya no en el starter.
+                implementation("org.springframework.boot:spring-boot-data-jpa-test")
+                implementation("org.springframework.boot:spring-boot-jdbc-test")
+                implementation("org.springframework.boot:spring-boot-testcontainers")
+                implementation("org.testcontainers:testcontainers-junit-jupiter")
+                implementation("org.testcontainers:testcontainers-postgresql")
+                runtimeOnly("org.postgresql:postgresql")
+                runtimeOnly("org.flywaydb:flyway-database-postgresql")
             }
         }
 
