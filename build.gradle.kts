@@ -22,13 +22,11 @@ repositories {
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-webmvc")
     implementation("org.springframework.boot:spring-boot-starter-validation")
-    // Swagger UI como visor del contrato estático (docs/openapi.yaml); aporta además
-    // las anotaciones OpenAPI que usan las interfaces generadas.
+    // Visor del contrato estático y anotaciones OpenAPI de las interfaces generadas.
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.1.0")
 }
 
-// API-First: el contrato docs/openapi.yaml es la fuente de verdad. De él se generan
-// la interfaz del controller y los modelos; lo generado vive en build/ y no se commitea.
+// Interfaces y modelos generados desde el contrato; viven en build/ y no se commitean.
 openApiGenerate {
     generatorName = "spring"
     inputSpec = layout.projectDirectory.file("docs/openapi.yaml")
@@ -64,7 +62,7 @@ tasks.named("check") {
     dependsOn(tasks.openApiValidate)
 }
 
-// El yaml se sirve también en runtime (Swagger UI apunta a él) sin duplicar fuente.
+// Copia el contrato a static/ para servirlo en runtime sin duplicar fuente.
 tasks.processResources {
     from(layout.projectDirectory.file("docs/openapi.yaml")) {
         into("static")
