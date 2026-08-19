@@ -1,3 +1,9 @@
 spring:
   application:
     name: prices-api
+
+springdoc:
+  # Swagger UI como visor del contrato estático. api-docs queda activo porque
+  # springdoc desactiva también la UI al apagarlo.
+  swagger-ui:
+    url: /openapi.yaml
