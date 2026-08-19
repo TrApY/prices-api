@@ -92,6 +92,7 @@ testing {
                 implementation("org.springframework.boot:spring-boot-data-jpa-test")
                 implementation("org.springframework.boot:spring-boot-jdbc-test")
                 implementation("org.springframework.boot:spring-boot-testcontainers")
+                implementation("com.tngtech.archunit:archunit-junit5:1.4.2")
                 implementation("org.testcontainers:testcontainers-junit-jupiter")
                 implementation("org.testcontainers:testcontainers-postgresql")
                 runtimeOnly("org.postgresql:postgresql")
