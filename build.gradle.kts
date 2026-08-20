@@ -1,9 +1,11 @@
 plugins {
     java
+    jacoco
     `jvm-test-suite`
     id("org.springframework.boot") version "4.1.0"
     id("io.spring.dependency-management") version "1.1.7"
     id("org.openapi.generator") version "7.24.0"
+    id("org.sonarqube") version "7.4.0.8496"
 }
 
 group = "com.inditex"
@@ -129,6 +131,44 @@ testing {
 
 tasks.withType<Test> {
     useJUnitPlatform()
+}
+
+tasks.jacocoTestReport {
+    dependsOn(tasks.test)
+    reports {
+        xml.required = true
+        html.required = true
+    }
+}
+
+// Gate de cobertura a nivel de build: fino por paquete, funciona en local y sin
+// depender de servicios externos. El gate de plataforma lo pone SonarCloud.
+tasks.jacocoTestCoverageVerification {
+    dependsOn(tasks.jacocoTestReport)
+    violationRules {
+        rule {
+            element = "PACKAGE"
+            includes = listOf("com.inditex.prices.domain*", "com.inditex.prices.application*")
+            limit {
+                counter = "LINE"
+                value = "COVEREDRATIO"
+                minimum = "0.80".toBigDecimal()
+            }
+        }
+    }
+}
+
+tasks.named("check") {
+    dependsOn(tasks.jacocoTestCoverageVerification)
+}
+
+sonar {
+    properties {
+        property("sonar.projectKey", "TrApY_prices-api")
+        property("sonar.organization", "trapy")
+        property("sonar.host.url", "https://sonarcloud.io")
+        property("sonar.coverage.jacoco.xmlReportPaths", "build/reports/jacoco/test/jacocoTestReport.xml")
+    }
 }
 
 tasks.named("check") {
