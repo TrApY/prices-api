@@ -9,9 +9,25 @@ permissions:
   contents: read
 
 jobs:
+  secrets-check:
+    name: Secrets check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+      - name: Detect plaintext secrets
+        run: |
+          pip install --quiet detect-secrets
+          detect-secrets-hook --baseline .secrets.baseline $(git ls-files)
+
   build:
     name: Build & Test
+    needs: secrets-check
     runs-on: ubuntu-latest
+    env:
+      JASYPT_ENCRYPTOR_PASSWORD: ${{ secrets.JASYPT_ENCRYPTOR_PASSWORD }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-java@v5
