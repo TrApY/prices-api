@@ -63,6 +63,38 @@ acompañan de casos negativos (404 y 400 en formato `application/problem+json`).
 
 ## Decisiones de diseño
 
+```mermaid
+flowchart LR
+    client((Cliente HTTP)) -->|"GET /api/v1/prices"| rest
+
+    subgraph infrastructure
+        rest["PriceController<br/>(adaptador REST — implementa<br/>la interfaz generada del contrato)"]
+        jpa["PricePersistenceAdapter<br/>(adaptador JPA)"]
+        db[("H2 en memoria<br/>esquema y datos: Flyway")]
+    end
+
+    subgraph application
+        in["FindApplicablePriceUseCase<br/>(puerto de entrada)"]
+        svc[FindApplicablePriceService]
+        out["PriceRepository<br/>(puerto de salida)"]
+    end
+
+    subgraph domain
+        model["Price · Money · PriceQuery<br/>(records con invariantes)"]
+        policy["HighestPriorityWins<br/>(política de selección)"]
+    end
+
+    rest --> in
+    svc -. implementa .-> in
+    svc --> out
+    svc --> policy
+    policy --> model
+    jpa -. implementa .-> out
+    jpa --> db
+```
+
+Las dependencias apuntan siempre hacia el dominio; la regla la garantiza ArchUnit en cada build.
+
 **Arquitectura hexagonal en un solo módulo, verificada por test.** El dominio
 ([`domain`](src/main/java/com/inditex/prices/domain)) no conoce Spring, JPA, Jackson
 ni MapStruct; los casos de uso y puertos viven en
@@ -135,11 +167,19 @@ en [SonarCloud](https://sonarcloud.io/project/overview?id=TrApY_prices-api).
 
 ## CI/CD
 
-Pipeline por stages en GitHub Actions:
+Pipeline por stages en GitHub Actions, con su grafo real de dependencias:
 
-```
-secrets-check → build → test (unit | cucumber | karate) → coverage → sonar
-                                  └→ contract → dockerize → security-scan
+```mermaid
+flowchart LR
+    S[secrets-check] --> B[build]
+    B --> T1["test<br/>(unit + gate de cobertura)"]
+    B --> T2["test<br/>(cucumber)"]
+    B --> T3["test<br/>(karate)"]
+    B --> C[contract]
+    T1 & T2 & T3 --> SO["sonar<br/>(quality gate)"]
+    T1 & T2 & T3 --> D[dockerize]
+    C --> D
+    D --> SC["security-scan<br/>(Trivy)"]
 ```
 
 - **secrets-check**: `detect-secrets` contra el baseline; un secreto plano corta todo.
