@@ -20,14 +20,12 @@ jobs:
       - name: Detect plaintext secrets
         run: |
           pip install --quiet detect-secrets
-          detect-secrets-hook --baseline .secrets.baseline $(git ls-files)
+          git ls-files -z | xargs -0 detect-secrets-hook --baseline .secrets.baseline
 
   build:
     name: Build & Test
     needs: secrets-check
     runs-on: ubuntu-latest
-    env:
-      JASYPT_ENCRYPTOR_PASSWORD: ${{ secrets.JASYPT_ENCRYPTOR_PASSWORD }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-java@v5
@@ -36,6 +34,9 @@ jobs:
           java-version: '25'
       - uses: gradle/actions/setup-gradle@v6
       - name: Build
+        # El secreto se acota a este step: las actions de terceros no lo ven.
+        env:
+          JASYPT_ENCRYPTOR_PASSWORD: ${{ secrets.JASYPT_ENCRYPTOR_PASSWORD }}
         run: ./gradlew build
       - name: Upload test reports
         if: always()
