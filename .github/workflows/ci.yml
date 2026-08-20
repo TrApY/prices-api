@@ -141,16 +141,24 @@ jobs:
           name: docker-image
       - name: Load image
         run: docker load -i image.tar
-      - name: Trivy scan
+      # Gate en formato tabla: si corta, los hallazgos quedan visibles en el log.
+      - name: Trivy gate (CRITICAL con fix)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: ghcr.io/trapy/prices-api:${{ github.sha }}
+          format: table
+          severity: CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'
+      - name: Trivy SARIF (informe completo)
+        if: always()
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ghcr.io/trapy/prices-api:${{ github.sha }}
           format: sarif
           output: trivy.sarif
-          # Bloquea solo por CRITICAL con fix disponible; el detalle completo va al Security tab.
-          severity: CRITICAL
-          ignore-unfixed: true
-          exit-code: '1'
+          exit-code: '0'
+          skip-setup-trivy: true
       - name: Upload SARIF to Security tab
         # El code scanning de GitHub requiere repo público (o Advanced Security);
         # se activa solo cuando el repo se publique.
