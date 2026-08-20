@@ -21,9 +21,7 @@ class HexagonalArchitectureTest {
             .applicationServices("..application..")
             .adapter("rest", "..infrastructure.adapter.in.rest..")
             .adapter("persistence", "..infrastructure.adapter.out.persistence..")
-            // El composition root (wiring) es capa externa: puede conocerlo todo;
-            // la regla garantiza que nadie depende de él.
-            .adapter("configuration", "..infrastructure.config..")
+            .adapter("composition-root", "..infrastructure.config..")
             .withOptionalLayers(true);
 
     @ArchTest
