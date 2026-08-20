@@ -106,10 +106,10 @@ jobs:
   sonar:
     name: Sonar
     needs: tests
-    # El plan free de SonarCloud solo analiza la rama principal y las PRs: en pushes
-    # a develop se omite (su contenido ya se analizó en la PR). En forks no hay secrets.
+    # El plan free de SonarCloud solo analiza la rama principal del proyecto y las PRs.
+    # La principal en Sonar es develop (la rama de trabajo): main se omite. En forks no hay secrets.
     if: |
-      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/develop') ||
       (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-latest
     steps:
