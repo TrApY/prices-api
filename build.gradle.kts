@@ -28,6 +28,7 @@ dependencies {
     implementation("org.flywaydb:flyway-core")
     // Visor del contrato estático y anotaciones OpenAPI de las interfaces generadas.
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.1.0")
+    implementation("com.github.ulisesbocchio:jasypt-spring-boot-starter:4.0.4")
 
     compileOnly("org.projectlombok:lombok")
     implementation("org.mapstruct:mapstruct:1.6.3")
