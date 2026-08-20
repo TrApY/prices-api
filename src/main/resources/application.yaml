@@ -5,13 +5,19 @@ spring:
   datasource:
     url: jdbc:h2:mem:prices;DB_CLOSE_DELAY=-1
     username: sa
-    password: ""
+    password: ENC(vz9RMw6zZ4sMFSNXInMInF2qW1DNBI8xX8tLBAOnOqOK5SpHzfSJVoIoY98rDLnJ)
 
   jpa:
     # El esquema lo gobierna Flyway; Hibernate solo valida que las entidades cuadren.
     hibernate:
       ddl-auto: validate
     open-in-view: false
+
+jasypt:
+  encryptor:
+    # Clave maestra por entorno (en CI, GitHub Secret). El default existe SOLO para
+    # que la kata ejecute sin fricción; en un entorno real no habría default.
+    password: ${JASYPT_ENCRYPTOR_PASSWORD:kata-dev-key}
 
 springdoc:
   # Swagger UI como visor del contrato estático. api-docs queda activo porque
