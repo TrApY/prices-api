@@ -21,6 +21,11 @@ repositories {
     mavenCentral()
 }
 
+// Versiones deterministas: cualquier cambio de dependencia pasa por el lockfile.
+dependencyLocking {
+    lockAllConfigurations()
+}
+
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-webmvc")
     implementation("org.springframework.boot:spring-boot-starter-validation")
