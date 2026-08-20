@@ -1,0 +1,220 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [develop, main]
+
+permissions:
+  contents: read
+
+env:
+  IMAGE: ghcr.io/trapy/prices-api
+
+jobs:
+  secrets-check:
+    name: Secrets check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7
+        with:
+          python-version: '3.12'
+      - name: Detect plaintext secrets
+        run: |
+          pip install --quiet --only-binary :all: detect-secrets==1.5.0
+          git ls-files -z | xargs -0 detect-secrets-hook --baseline .secrets.baseline
+
+  build:
+    name: Build
+    needs: secrets-check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: '25'
+      - uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6
+      - name: Assemble
+        run: ./gradlew assemble
+      - name: Upload jar
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: app-jar
+          path: build/libs/*.jar
+
+  tests:
+    name: Test (${{ matrix.name }})
+    needs: build
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: unit-integration
+            # Ejecuta la suite y aplica el gate de cobertura en la misma pasada.
+            suite: jacocoTestCoverageVerification
+            reports: |
+              build/reports/tests/test
+              build/reports/jacoco/test/html
+          - name: cucumber
+            suite: cucumberTest
+            reports: |
+              build/reports/tests/cucumberTest
+              build/reports/cucumber
+          - name: karate
+            suite: karateTest
+            reports: build/reports/tests/karateTest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: '25'
+      - uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6
+      - name: Run ${{ matrix.suite }}
+        env:
+          JASYPT_ENCRYPTOR_PASSWORD: ${{ secrets.JASYPT_ENCRYPTOR_PASSWORD }}
+        run: ./gradlew ${{ matrix.suite }}
+      - name: Upload reports
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: reports-${{ matrix.name }}
+          path: ${{ matrix.reports }}
+      - name: Coverage summary
+        if: matrix.name == 'unit-integration' && always()
+        run: |
+          python3 - >> "$GITHUB_STEP_SUMMARY" <<'EOF'
+          import xml.etree.ElementTree as ET
+          root = ET.parse('build/reports/jacoco/test/jacocoTestReport.xml').getroot()
+          print('## Cobertura (JaCoCo)')
+          print('| Contador | Cubierto | Total | % |')
+          print('|---|---|---|---|')
+          for c in root.findall('counter'):
+              cov = int(c.get('covered')); tot = cov + int(c.get('missed'))
+              print(f"| {c.get('type')} | {cov} | {tot} | {100*cov/tot:.1f}% |")
+          EOF
+      - name: Upload coverage XML for Sonar
+        if: matrix.name == 'unit-integration'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: jacoco-xml
+          path: build/reports/jacoco/test/jacocoTestReport.xml
+
+  sonar:
+    name: Sonar
+    needs: tests
+    # El plan free de SonarCloud solo analiza la rama principal del proyecto y las PRs.
+    # La principal en Sonar es develop (la rama de trabajo): main se omite. En forks no hay secrets.
+    if: |
+      (github.event_name == 'push' && github.ref == 'refs/heads/develop') ||
+      (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          # Historia completa: Sonar la necesita para el análisis de new code.
+          fetch-depth: 0
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: '25'
+      - uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6
+      - name: Download coverage XML
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: jacoco-xml
+          path: build/reports/jacoco/test/
+      - name: SonarCloud analysis
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        # Compila para el análisis y reutiliza la cobertura de la stage de tests.
+        run: ./gradlew classes testClasses sonar
+
+  contract:
+    name: Contract
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+        with:
+          distribution: temurin
+          java-version: '25'
+      - uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6
+      - name: Validate OpenAPI contract
+        run: ./gradlew openApiValidate
+
+  dockerize:
+    name: Dockerize
+    needs: [tests, contract]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Build image
+        run: docker build -t "$IMAGE:${{ github.sha }}" -t "$IMAGE:latest" .
+      - name: Save image for the scan stage
+        run: docker save "$IMAGE:${{ github.sha }}" -o image.tar
+      - name: Upload image artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: docker-image
+          path: image.tar
+          retention-days: 1
+      - name: Login to GHCR
+        if: github.event_name == 'push'
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Push (solo develop/main)
+        if: github.event_name == 'push'
+        run: |
+          docker push "$IMAGE:${{ github.sha }}"
+          docker push "$IMAGE:latest"
+
+  security-scan:
+    name: Security scan
+    needs: dockerize
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: docker-image
+      - name: Load image
+        run: docker load -i image.tar
+      # Gate en formato tabla: si corta, los hallazgos quedan visibles en el log.
+      - name: Trivy gate (CRITICAL con fix)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: ghcr.io/trapy/prices-api:${{ github.sha }}
+          format: table
+          severity: CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'
+      - name: Trivy SARIF (informe completo)
+        if: always()
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: ghcr.io/trapy/prices-api:${{ github.sha }}
+          format: sarif
+          output: trivy.sarif
+          exit-code: '0'
+          skip-setup-trivy: true
+      - name: Upload SARIF to Security tab
+        # El code scanning de GitHub requiere repo público (o Advanced Security);
+        # se activa solo cuando el repo se publique.
+        if: always() && github.event.repository.private == false
+        uses: github/codeql-action/upload-sarif@ff2f1c621b7f889edc0d3c761ac2e6a3f8cdb0dd # v4
+        with:
+          sarif_file: trivy.sarif
