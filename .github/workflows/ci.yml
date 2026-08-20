@@ -53,8 +53,11 @@ jobs:
       matrix:
         include:
           - name: unit-integration
-            suite: test
-            reports: build/reports/tests/test
+            # Ejecuta la suite y aplica el gate de cobertura en la misma pasada.
+            suite: jacocoTestCoverageVerification
+            reports: |
+              build/reports/tests/test
+              build/reports/jacoco/test/html
           - name: cucumber
             suite: cucumberTest
             reports: |
@@ -80,24 +83,8 @@ jobs:
         with:
           name: reports-${{ matrix.name }}
           path: ${{ matrix.reports }}
-
-  coverage:
-    name: Coverage gate
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: '25'
-      - uses: gradle/actions/setup-gradle@v6
-      - name: Verify coverage (JaCoCo)
-        env:
-          JASYPT_ENCRYPTOR_PASSWORD: ${{ secrets.JASYPT_ENCRYPTOR_PASSWORD }}
-        run: ./gradlew jacocoTestCoverageVerification
       - name: Coverage summary
-        if: always()
+        if: matrix.name == 'unit-integration' && always()
         run: |
           python3 - >> "$GITHUB_STEP_SUMMARY" <<'EOF'
           import xml.etree.ElementTree as ET
@@ -109,16 +96,18 @@ jobs:
               cov = int(c.get('covered')); tot = cov + int(c.get('missed'))
               print(f"| {c.get('type')} | {cov} | {tot} | {100*cov/tot:.1f}% |")
           EOF
-      - name: Upload coverage report
-        if: always()
+      - name: Upload coverage XML for Sonar
+        if: matrix.name == 'unit-integration'
         uses: actions/upload-artifact@v7
         with:
-          name: coverage-report
-          path: build/reports/jacoco/test/html
+          name: jacoco-xml
+          path: build/reports/jacoco/test/jacocoTestReport.xml
 
   sonar:
     name: Sonar
-    needs: coverage
+    needs: tests
+    # En PRs de forks no hay secrets: el análisis se omite en vez de romper la CI.
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -130,11 +119,16 @@ jobs:
           distribution: temurin
           java-version: '25'
       - uses: gradle/actions/setup-gradle@v6
+      - name: Download coverage XML
+        uses: actions/download-artifact@v8
+        with:
+          name: jacoco-xml
+          path: build/reports/jacoco/test/
       - name: SonarCloud analysis
         env:
-          JASYPT_ENCRYPTOR_PASSWORD: ${{ secrets.JASYPT_ENCRYPTOR_PASSWORD }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        run: ./gradlew jacocoTestReport sonar
+        # Compila para el análisis y reutiliza la cobertura de la stage de tests.
+        run: ./gradlew classes testClasses sonar
 
   contract:
     name: Contract
@@ -152,7 +146,7 @@ jobs:
 
   dockerize:
     name: Dockerize
-    needs: [tests, contract, coverage]
+    needs: [tests, contract]
     runs-on: ubuntu-latest
     permissions:
       contents: read

@@ -168,6 +168,8 @@ sonar {
         property("sonar.organization", "trapy")
         property("sonar.host.url", "https://sonarcloud.io")
         property("sonar.coverage.jacoco.xmlReportPaths", "build/reports/jacoco/test/jacocoTestReport.xml")
+        // El análisis espera el resultado del quality gate y falla si no pasa.
+        property("sonar.qualitygate.wait", "true")
     }
 }
 
