@@ -106,6 +106,12 @@ testing {
             dependencies {
                 implementation(project())
                 implementation("org.springframework.boot:spring-boot-starter-test")
+                implementation("io.cucumber:cucumber-java:7.34.7")
+                implementation("io.cucumber:cucumber-spring:7.34.7")
+                implementation("io.cucumber:cucumber-junit-platform-engine:7.34.7")
+                implementation("org.junit.platform:junit-platform-suite")
+                // Las suites no heredan las deps implementation del proyecto.
+                implementation("tools.jackson.core:jackson-databind")
             }
         }
 
@@ -113,6 +119,8 @@ testing {
             dependencies {
                 implementation(project())
                 implementation("org.springframework.boot:spring-boot-starter-test")
+                implementation("io.karatelabs:karate-core:2.1.2")
+                implementation("io.karatelabs:karate-junit6:2.1.2")
             }
         }
     }
@@ -120,13 +128,6 @@ testing {
 
 tasks.withType<Test> {
     useJUnitPlatform()
-}
-
-// Las suites BDD se rellenan en su propia tarea; hasta entonces no deben romper check.
-listOf("cucumberTest", "karateTest").forEach { suite ->
-    tasks.named<Test>(suite) {
-        failOnNoDiscoveredTests = false
-    }
 }
 
 tasks.named("check") {
