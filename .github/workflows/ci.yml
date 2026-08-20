@@ -22,7 +22,7 @@ jobs:
           python-version: '3.12'
       - name: Detect plaintext secrets
         run: |
-          pip install --quiet --only-binary :all: detect-secrets
+          pip install --quiet --only-binary :all: detect-secrets==1.5.0
           git ls-files -z | xargs -0 detect-secrets-hook --baseline .secrets.baseline
 
   build:
