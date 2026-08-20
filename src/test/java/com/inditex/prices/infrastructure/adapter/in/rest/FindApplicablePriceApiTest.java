@@ -14,6 +14,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -73,29 +74,23 @@ class FindApplicablePriceApiTest {
         HttpResponse<String> response =
                 get("applicationDate=2019-01-01T00:00:00&productId=35455&brandId=1");
 
-        assertEquals(404, response.statusCode());
-        assertProblemJson(response);
-        JsonNode body = json.readTree(response.body());
-        assertEquals(404, body.get("status").asInt());
-        assertTrue(body.get("detail").asString().contains("35455"));
+        JsonNode problem = assertProblemJson(response, 404);
+        assertTrue(problem.get("detail").asString().contains("35455"));
     }
 
     @Test
     void answersBadRequestAsProblemJsonOnMalformedDate() throws Exception {
-        HttpResponse<String> response = get("applicationDate=no-es-una-fecha&productId=35455&brandId=1");
-
-        assertEquals(400, response.statusCode());
-        assertProblemJson(response);
+        assertProblemJson(get("applicationDate=no-es-una-fecha&productId=35455&brandId=1"), 400);
     }
 
     @Test
     void answersBadRequestWhenARequiredParameterIsMissing() throws Exception {
-        assertEquals(400, get("productId=35455&brandId=1").statusCode());
+        assertProblemJson(get("productId=35455&brandId=1"), 400);
     }
 
     @Test
     void answersBadRequestOnNonPositiveIdentifiers() throws Exception {
-        assertEquals(400, get("applicationDate=2020-06-14T10:00:00&productId=0&brandId=1").statusCode());
+        assertProblemJson(get("applicationDate=2020-06-14T10:00:00&productId=0&brandId=1"), 400);
     }
 
     private void assertApplicablePrice(
@@ -109,16 +104,20 @@ class FindApplicablePriceApiTest {
         assertEquals(PRODUCT_35455, body.get("productId").asLong());
         assertEquals(BRAND_ZARA, body.get("brandId").asLong());
         assertEquals(expectedPriceList, body.get("priceList").asInt());
-        // Dinero: comparación exacta por valor con BigDecimal, nunca igualdad de double.
         assertEquals(0, new BigDecimal(expectedPrice).compareTo(body.get("price").decimalValue()));
         assertEquals(expectedStart, body.get("startDate").asString());
         assertEquals(expectedEnd, body.get("endDate").asString());
         assertEquals("EUR", body.get("currency").asString());
     }
 
-    private void assertProblemJson(HttpResponse<String> response) {
+    private JsonNode assertProblemJson(HttpResponse<String> response, int expectedStatus) {
+        assertEquals(expectedStatus, response.statusCode());
         assertTrue(response.headers().firstValue("Content-Type").orElse("")
                 .contains("application/problem+json"));
+        JsonNode problem = json.readTree(response.body());
+        assertEquals(expectedStatus, problem.get("status").asInt());
+        assertFalse(problem.get("title").asString().isBlank());
+        return problem;
     }
 
     private HttpResponse<String> get(String queryString) throws Exception {
