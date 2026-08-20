@@ -1,6 +1,6 @@
 # prices-api
 
-[![CI](https://github.com/TrApY/prices-api/actions/workflows/ci.yml/badge.svg?branch=develop)](https://github.com/TrApY/prices-api/actions/workflows/ci.yml)
+[![CI](https://github.com/TrApY/prices-api/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/TrApY/prices-api/actions/workflows/ci.yml)
 [![Quality Gate](https://sonarcloud.io/api/project_badges/measure?project=TrApY_prices-api&metric=alert_status)](https://sonarcloud.io/project/overview?id=TrApY_prices-api)
 [![Coverage](https://sonarcloud.io/api/project_badges/measure?project=TrApY_prices-api&metric=coverage)](https://sonarcloud.io/component_measures?id=TrApY_prices-api&metric=coverage)
 
@@ -42,7 +42,7 @@ docker run -p 8080:8080 ghcr.io/trapy/prices-api:latest
 
 La documentación navegable de la API queda en `http://localhost:8080/swagger-ui.html`.
 El contrato vive en [`docs/openapi.yaml`](docs/openapi.yaml) y puede verse renderizado
-en [Swagger Editor](https://editor.swagger.io/?url=https://raw.githubusercontent.com/TrApY/prices-api/develop/docs/openapi.yaml).
+en [Swagger Editor](https://editor.swagger.io/?url=https://raw.githubusercontent.com/TrApY/prices-api/main/docs/openapi.yaml).
 
 ## Los 5 tests del enunciado
 

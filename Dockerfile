@@ -3,8 +3,9 @@ FROM eclipse-temurin:25-jdk AS builder
 WORKDIR /app
 COPY . .
 RUN --mount=type=cache,target=/root/.gradle ./gradlew bootJar --no-daemon
-RUN java -Djarmode=tools -jar build/libs/prices-api-0.0.1-SNAPSHOT.jar extract --layers --destination extracted \
-    && mv extracted/application/prices-api-*.jar extracted/application/app.jar
+# Desacoplado de la versión: bootJar produce un único jar.
+RUN java -Djarmode=tools -jar build/libs/*.jar extract --layers --destination extracted \
+    && mv extracted/application/*.jar extracted/application/app.jar
 
 # Runtime mínimo, sin JDK y sin root.
 FROM eclipse-temurin:25-jre-alpine
